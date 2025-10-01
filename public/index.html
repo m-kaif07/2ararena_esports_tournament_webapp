@@ -21,19 +21,8 @@
       <a class="btn" href="/tournaments.html">Browse Tournaments</a>
       <a class="btn" href="/signup.html">Join Now</a>
     </div>
-    <section class="video-grid">
-      <a class="video-card" href="https://youtu.be/hpm5rqEERWg?si=NhhHlrxPOsp-j_Cb" target="_blank" rel="noopener" aria-label="Featured Video 1">
-        <div class="video-thumb" style="--thumb:url('https://img.youtube.com/vi/hpm5rqEERWg/hqdefault.jpg')"></div>
-        <div class="video-overlay"><span class="play">▶</span></div>
-      </a>
-      <a class="video-card" href="https://youtu.be/8iZ8XOUybIc?si=UsF2lNorz2QNuFAD" target="_blank" rel="noopener" aria-label="Featured Video 2">
-        <div class="video-thumb" style="--thumb:url('https://img.youtube.com/vi/8iZ8XOUybIc/hqdefault.jpg')"></div>
-        <div class="video-overlay"><span class="play">▶</span></div>
-      </a>
-      <a class="video-card" href="https://youtu.be/OG57xja0gxY?si=cQ7nRLXiDVY6vVw_" target="_blank" rel="noopener" aria-label="Featured Video 3">
-        <div class="video-thumb" style="--thumb:url('https://img.youtube.com/vi/OG57xja0gxY/hqdefault.jpg')"></div>
-        <div class="video-overlay"><span class="play">▶</span></div>
-      </a>
+    <section class="video-grid" id="videoGrid">
+      <!-- Videos will be loaded dynamically -->
     </section>
     <br>
     <br>
@@ -69,7 +58,12 @@
       <a class="btn" href="/signup.html">Join Now</a>
     </div> -->
   </main>
-  <footer id="footer"></footer>
+  <footer id="footer">
+    <nav style="margin-top: 10px;">
+      <a href="/about.html" style="color: var(--accent); text-decoration: none; font-weight: 600;">About Us</a>
+    </nav>
+  </footer>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/header.js"></script>
   <script src="/js/index.js"></script>

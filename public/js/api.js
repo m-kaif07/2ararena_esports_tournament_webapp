@@ -1,4 +1,4 @@
-const API = {
+  const API = {
   // Dynamically set API base for local network/mobile access
   base: (function() {
     // If running on localhost, use relative path

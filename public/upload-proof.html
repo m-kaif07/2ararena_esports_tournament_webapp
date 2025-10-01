@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ARArena — Upload Proof</title>
+<link href="/css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header id="header"></header>
+<main class="container">
+<h1>Upload Proof</h1>
+<div class="proof-box">
+  <h2>Upload Proof Images</h2>
+  <form id="proofUploadForm" enctype="multipart/form-data">
+    <label for="file-upload" class="custom-file-upload">Choose Files</label>
+    <input id="file-upload" type="file" name="proofImages" multiple accept="image/*" required>
+    <button type="submit">Upload</button>
+  </form>
+  <div id="uploadMsg"></div>
+</div>
+</main>
+<footer id="footer"></footer>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/header.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

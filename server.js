@@ -213,6 +213,7 @@ require('./db/init')(dbPath).then((db) => {
   app.use('/api/auth', require('./routes/auth')(db));
   app.use('/api/tournaments', require('./routes/tournaments')(db));
   app.use('/api/admin', require('./routes/admin')(db));
+  app.use('/api/videos', require('./routes/videos')(db, io));
 
   // Backfill slots for existing tournaments if missing
   db.all('SELECT id, mode, totalSlots FROM tournaments', [], (e1, tours) => {

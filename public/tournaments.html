@@ -19,18 +19,30 @@
         <!-- <div class="game-card__overlay"></div>
         <div class="game-card__content"></div> -->
       </div>
+      <div class="game-card" id="card-lonewolf" aria-label="LONE WOLF" role="button" tabindex="0" style="--bg-url: url('/img/lone.jpg');">
+      </div>
+      <div class="game-card" id="card-clash" aria-label="Clash Squad" role="button" tabindex="0" style="--bg-url: url('/img/clash.jpg');">
+      </div>
     </section>
     <div id="selectedGameMsg" class="small hidden" style="margin-top:8px;color:#93c5fd"></div>
-    
-    <!-- Tournament Mode Filters
+
+    <!-- Tournament Filters -->
     <div class="tournament-filters-wrapper">
-      <div class="tournament-filters">
-        <button class="filter-btn active" data-mode="all">ALL</button>
-        <button class="filter-btn" data-mode="solo">SOLO</button>
-        <button class="filter-btn" data-mode="duo">DUO</button>
-        <button class="filter-btn" data-mode="squad">SQUAD</button>
+      <div class="filter-row">
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="status" data-value="upcoming">Upcoming</button>
+          <button class="filter-btn" data-filter="status" data-value="completed">Completed</button>
+        </div>
       </div>
-    </div> -->
+      <div class="filter-row">
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="type" data-value="all">All</button>
+          <button class="filter-btn" data-filter="type" data-value="solo">Solo</button>
+          <button class="filter-btn" data-filter="type" data-value="duo">Duo</button>
+          <button class="filter-btn" data-filter="type" data-value="squad">Squad</button>
+        </div>
+      </div>
+    </div>
 
     <div id="tournamentsList" class="grid">
       <!-- Tournament cards will be dynamically inserted here -->

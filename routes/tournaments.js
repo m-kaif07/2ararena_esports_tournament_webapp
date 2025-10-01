@@ -1,7 +1,8 @@
 const express = require('express');
 const { authRequired } = require('../middleware/auth');
 
-function teamSizeForMode(mode) {
+function teamSizeFor(game, mode) {
+  if (game === 'Clash Squad') return 4;
   if (mode === 'Duo') return 2;
   if (mode === 'Squad') return 4;
   return 1; // Solo
@@ -26,8 +27,14 @@ module.exports = function(db) {
   // List tournaments with filled players from SUM(teamSize) and include winner
   router.get('/', (req, res) => {
     const gameFilter = (req.query && req.query.game) ? String(req.query.game) : null;
-    const sqlBase = gameFilter ? 'SELECT * FROM tournaments WHERE game = ? ORDER BY datetime(dateTime) ASC' : 'SELECT * FROM tournaments ORDER BY datetime(dateTime) ASC';
-    const params = gameFilter ? [gameFilter] : [];
+    const modeFilter = (req.query && req.query.mode) ? String(req.query.mode).toLowerCase() : null; // all | solo | duo | squad
+    let sqlBase = 'SELECT * FROM tournaments';
+    const where = [];
+    const params = [];
+    if (gameFilter) { where.push('game = ?'); params.push(gameFilter); }
+    if (modeFilter && ['solo','duo','squad'].includes(modeFilter)) { where.push('LOWER(mode) = ?'); params.push(modeFilter.charAt(0).toUpperCase() + modeFilter.slice(1)); }
+    if (where.length) sqlBase += ' WHERE ' + where.join(' AND ');
+    sqlBase += ' ORDER BY datetime(dateTime) ASC';
     db.all(sqlBase, params, (err, rows) => {
       if (err) return res.status(500).json({ error: 'Server error' });
       if (!rows) return res.json([]);
@@ -38,7 +45,7 @@ module.exports = function(db) {
         (counts || []).forEach(c => { map[c.tournamentId] = c.count; });
         const result = rows.map(r => {
           const filledPlayers = map[r.id] || 0;
-          const teamSize = teamSizeForMode(r.mode);
+          const teamSize = teamSizeFor(r.game, r.mode);
           const slotsFilled = Math.ceil(filledPlayers / teamSize);
           const playerCapacity = r.totalSlots * teamSize;
           return { ...r, filledPlayers, slotsFilled, playerCapacity };
@@ -82,7 +89,7 @@ module.exports = function(db) {
       db.get('SELECT COALESCE(SUM(teamSize), 0) as count FROM registrations WHERE tournamentId = ?', [id], (err2, row) => {
         if (err2) return res.status(500).json({ error: 'Server error' });
         const filledPlayers = row.count;
-        const teamSize = teamSizeForMode(r.mode);
+        const teamSize = teamSizeFor(r.game, r.mode);
         const slotsFilled = Math.ceil(filledPlayers / teamSize);
         const playerCapacity = r.totalSlots * teamSize;
 
@@ -90,11 +97,11 @@ module.exports = function(db) {
         db.get('SELECT 1 FROM registrations WHERE userId = ? AND tournamentId = ?', [req.user.id, id], (err3, regRow) => {
           if (err3) return res.status(500).json({ error: 'Server error' });
 
-          // Show room only if registered and within 5 minutes before or after start
+          // Show room only if registered and within 15 minutes before start
           const now = new Date();
           const start = new Date(r.dateTime);
-          const fiveMinMs = 5 * 60 * 1000;
-          const showRoom = !!regRow && (now.getTime() >= (start.getTime() - fiveMinMs));
+          const fifteenMinMs = 15 * 60 * 1000;
+          const showRoom = !!regRow && (now.getTime() >= (start.getTime() - fifteenMinMs));
 
           return res.json({
             ...r,
@@ -121,7 +128,7 @@ module.exports = function(db) {
       if (err) return res.status(500).json({ error: 'Server error' });
       if (!r) return res.status(404).json({ error: 'Tournament not found' });
 
-      const teamSize = teamSizeForMode(r.mode);
+      const teamSize = teamSizeFor(r.game, r.mode);
 
       // Check if tournament has started
       const now = new Date();
@@ -186,8 +193,9 @@ module.exports = function(db) {
                       db.run('ROLLBACK');
                       return res.status(500).json({ error: 'Server error' });
                     }
-                    // If fee is zero or not set, auto-confirm: mark paid=1 and set slot to confirmed
-                    if (!r.fee || Number(r.fee) <= 0) {
+                    // Payment flow: coins preferred; if no fee, auto-confirm
+                    const feeVal = Number(r.fee || 0);
+                    if (feeVal <= 0) {
                       const nowIso = new Date().toISOString();
                       db.run('UPDATE registrations SET paid = 1 WHERE id = ?', [this.lastID], (e7) => {
                         if (e7) {
@@ -223,26 +231,54 @@ module.exports = function(db) {
                         });
                       });
                     } else {
-                      db.run('COMMIT', (e7) => {
-                        if (e7) return res.status(500).json({ error: 'Server error' });
-                        // Emit update for the reserved slot
-                        db.get('SELECT * FROM slots WHERE tournamentId = ? AND slotNumber = ?', [id, slotRow.slotNumber], (e8, finalSlot) => {
-                          const io = req.app.get('io');
-                          if (io && finalSlot) {
-                            io.to(`tournament:${id}`).emit('slot_update', { tournamentId: Number(id), slot: finalSlot });
-                            // Check if slots are almost full
-                            db.get('SELECT COUNT(*) as filled FROM slots WHERE tournamentId = ? AND status IN ("reserved", "confirmed")', [id], (e9, cnt) => {
-                              if (!e9 && cnt) {
-                                const total = r.totalSlots;
-                                const remaining = total - cnt.filled;
-                                if (remaining <= 5 && remaining > 0) {
-                                  io.to(`tournament:${id}`).emit('notification', { type: 'slots_filling', message: `Register Fast! Only ${remaining} slots left.` });
-                                }
+                      // Try coin deduction path
+                      db.get('SELECT coins, fcmToken FROM users WHERE id = ?', [req.user.id], (uErr, uRow) => {
+                        if (uErr || !uRow) {
+                          db.run('ROLLBACK');
+                          return res.status(500).json({ error: 'Server error' });
+                        }
+                        if ((uRow.coins || 0) < feeVal) {
+                          // Not enough coins → keep reserved; require manual approval/payment
+                          db.run('COMMIT', (e7) => {
+                            if (e7) return res.status(500).json({ error: 'Server error' });
+                            db.get('SELECT * FROM slots WHERE tournamentId = ? AND slotNumber = ?', [id, slotRow.slotNumber], (e8, finalSlot) => {
+                              const io = req.app.get('io');
+                              if (io && finalSlot) {
+                                io.to(`tournament:${id}`).emit('slot_update', { tournamentId: Number(id), slot: finalSlot });
                               }
+                              return res.json({ ok: true, registrationId: this.lastID, slotNumber: slotRow.slotNumber, awaitingPayment: true, reason: 'insufficient_coins' });
                             });
-                          }
-                          return res.json({ ok: true, registrationId: this.lastID, slotNumber: slotRow.slotNumber });
-                        });
+                          });
+                        } else {
+                          const nowIso = new Date().toISOString();
+                          // Deduct coins and confirm registration
+                          db.run('UPDATE users SET coins = coins - ? WHERE id = ?', [feeVal, req.user.id], (dErr) => {
+                            if (dErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Server error' }); }
+                            db.run('UPDATE registrations SET paid = 1 WHERE id = ?', [this.lastID], (pErr) => {
+                              if (pErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Server error' }); }
+                              const confirmSql = `UPDATE slots SET status = 'confirmed', updatedAt = ? WHERE tournamentId = ? AND slotNumber = ?`;
+                              db.run(confirmSql, [nowIso, id, slotRow.slotNumber], (cErr) => {
+                                if (cErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Server error' }); }
+                                // Log transaction
+                                db.run('INSERT INTO transactions (userId, amount, type, description, dateTime) VALUES (?,?,?,?,?)', [req.user.id, -feeVal, 'debit', `Tournament join: ${r.title}`, nowIso], (tErr) => {
+                                  if (tErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Server error' }); }
+                                  db.run('COMMIT', (e9) => {
+                                    if (e9) return res.status(500).json({ error: 'Server error' });
+                                    const io = req.app.get('io');
+                                    if (io) io.to(`tournament:${id}`).emit('slot_update', { tournamentId: Number(id), slot: { slotNumber: slotRow.slotNumber, status: 'confirmed' } });
+                                    // Send FCM to user
+                                    const fcm = req.app.get('fcm');
+                                    if (fcm && uRow.fcmToken) {
+                                      const message = { token: uRow.fcmToken, notification: { title: 'Registered Successfully', body: `You joined "${r.title}". Coins deducted: ${feeVal}.` } };
+                                      fcm.send(message).catch(()=>{});
+                                    }
+                                    return res.json({ ok: true, registrationId: this.lastID, slotNumber: slotRow.slotNumber, paidWithCoins: true });
+                                  });
+                                });
+                              });
+                            });
+                          });
+                        }
                       });
                     }
                   });

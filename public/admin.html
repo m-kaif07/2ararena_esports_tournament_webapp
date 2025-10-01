@@ -11,7 +11,29 @@
 <header id="header"></header>
 <main class="container">
 <h1>Admin Panel</h1>
-    <div class="proof-box">
+<!-- <div class="admin-dashboard">
+  <div class="dashboard-card" data-section="upload-proof">
+    <div class="card-icon">📤</div>
+    <h3>Upload Proof</h3>
+    <p>Upload proof images for tournaments and verifications.</p>
+  </div>
+  <div class="dashboard-card" data-section="create-tournament">
+    <div class="card-icon">🏆</div>
+    <h3>Create Tournament</h3>
+    <p>Set up new tournaments with game selection and details.</p>
+  </div>
+  <div class="dashboard-card" data-section="manage-tournament">
+    <div class="card-icon">⚙️</div>
+    <h3>Manage Tournament</h3>
+    <p>View and manage existing tournaments, registrations, and winners.</p>
+  </div>
+  <div class="dashboard-card" data-section="user-notifications">
+    <div class="card-icon">🔔</div>
+    <h3>User Notifications</h3>
+    <p>Enable push notifications for users and refresh FCM tokens.</p>
+  </div>
+</div> -->
+    <div class="proof-box" id="upload-proof">
   <h2>Upload Proof Images</h2>
   <form id="proofUploadForm" enctype="multipart/form-data">
     <label for="file-upload" class="custom-file-upload">Choose Files</label>
@@ -21,7 +43,7 @@
   <div id="uploadMsg"></div>
 </div>
 
-<div class="proof-box">
+<div class="proof-box" id="user-notifications">
   <h2>Enable User Notifications</h2>
   <p class="small">Help users who don't have FCM tokens to enable push notifications</p>
   <form id="notificationForm" class="form">
@@ -41,11 +63,13 @@
 </div>
 
 
-<section class="card">
+<section class="card" id="create-tournament">
 <h2>Create Tournament</h2>
 <div class="tabs" style="margin-bottom:12px">
   <button class="btn small" id="tab-ff" data-game="Free Fire">Free Fire</button>
   <button class="btn small secondary" id="tab-pubg" data-game="PUBG">PUBG</button>
+  <button class="btn small secondary" id="tab-lone" data-game="LONE WOLF">LONE WOLF</button>
+  <button class="btn small secondary" id="tab-clash" data-game="Clash Squad">Clash Squad</button>
   <span class="small" id="gameSelMsg" style="margin-left:8px;color:#93c5fd">Selected: Free Fire</span>
 </div>
 <form class="form" enctype="multipart/form-data" id="createTournamentForm">
@@ -77,16 +101,59 @@
 <label>Entry Fee (₹): <input name="fee" placeholder="0" type="number"/></label><label>Prize Pool (₹): <input name="prizePool" placeholder="0" type="number"/></label><label>1st Prize (₹): <input name="prize1" placeholder="0" type="number"/></label><label>2nd Prize (₹): <input name="prize2" placeholder="0" type="number"/></label><label>3rd Prize (₹): <input name="prize3" placeholder="0" type="number"/></label><label>Room ID: <input name="roomId" type="text"/></label><label>Room Password: <input name="roomPassword" type="text"/></label></form>
 <div class="msg" id="createMsg"></div>
 </section>
-<section class="card">
+<section class="card" id="manage-tournament">
 <h2>Manage Tournaments</h2>
 <div class="tabs" style="margin-bottom:12px">
   <button class="btn small" id="tab-list-ff" data-game="Free Fire">Free Fire</button>
   <button class="btn small secondary" id="tab-list-pubg" data-game="PUBG">PUBG</button>
+  <button class="btn small secondary" id="tab-list-lone" data-game="LONE WOLF">LONE WOLF</button>
+  <button class="btn small secondary" id="tab-list-clash" data-game="Clash Squad">Clash Squad</button>
   <span class="small" id="listGameSelMsg" style="margin-left:8px;color:#93c5fd">Showing: Free Fire</span>
 </div>
 <div class="grid" id="adminTours"></div>
 <div class="msg" id="adminMsg"></div>
 </section>
+
+<section class="card" id="manage-videos">
+  <h2>Manage Homepage Videos</h2>
+  <form id="addVideoForm">
+    <label>Title: <input type="text" id="videoTitle" required></label><br>
+    <label>Video URL: <input type="url" id="videoUrl" required></label><br>
+    <label>Thumbnail URL (leave empty to auto-fetch from YouTube): <input type="url" id="videoThumbnail"></label><br>
+    <button type="submit">Add Video</button>
+  </form>
+
+  <form id="editVideoForm" style="display: none; margin-top: 20px; border: 1px solid #666; padding: 10px; border-radius: 5px;">
+    <input type="hidden" id="editVideoId">
+    <label>Title: <input type="text" id="editVideoTitle" required></label><br>
+    <label>Video URL: <input type="url" id="editVideoUrl" required></label><br>
+    <label>Thumbnail URL (leave empty to auto-fetch from YouTube): <input type="url" id="editVideoThumbnail"></label><br>
+    <button type="submit">Save Changes</button>
+    <button type="button" onclick="cancelEdit()">Cancel</button>
+  </form>
+
+  <div id="videoList" style="margin-top: 20px;"></div>
+</section>
+
+<style>
+  #videoList .video-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+  }
+  #videoList .video-item img {
+    width: 100px;
+    height: 60px;
+    object-fit: cover;
+  }
+  #videoList .video-item div {
+    flex: 1;
+  }
+</style>
 </main>
 <footer id="footer"></footer>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -95,5 +162,6 @@
 <script src="/js/header.js"></script>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script src="/js/admin.js"></script>
+<script src="/js/videos.js"></script>
 </body>
 </html>

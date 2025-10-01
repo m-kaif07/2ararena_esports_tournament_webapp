@@ -13,7 +13,7 @@ async function renderHeader() {
     </a>`;
   }
 
-  // Bottom navigation links - Home in center, Tournaments left, Proofs right
+  // Bottom navigation links - Tournaments, Home, Proofs
   const bottomNavLinks = [
     link('/tournaments.html', 'Tournaments', '🏆'),
     link('/', 'Home', '🏠'),
@@ -60,7 +60,9 @@ async function renderHeader() {
         <a href="/terms.html" style="color:#93c5fd">Terms & Conditions</a> |
         <a href="/privacy.html" style="color:#93c5fd">Privacy Policy</a> |
         <a href="/faq.html" style="color:#93c5fd">FAQ</a> |
-        <a href="/contact.html" style="color:#93c5fd">Contact Us</a>
+        <a href="/contact.html" style="color:#93c5fd">Contact Us</a> |
+        <a href="/about.html" style="color:#93c5fd">About Us</a>
+
       </p>
     </div>`;
 

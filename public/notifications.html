@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>ARArena — User Notifications</title>
+<link href="/css/styles.css" rel="stylesheet"/>
+</head>
+<body>
+<header id="header"></header>
+<main class="container">
+<h1>User Notifications</h1>
+<div class="proof-box">
+  <h2>Enable User Notifications</h2>
+  <p class="small">Help users who don't have FCM tokens to enable push notifications</p>
+  <form id="notificationForm" class="form">
+    <label>User ID
+      <input type="number" id="userIdInput" placeholder="Enter user ID" required>
+    </label>
+    <button type="submit">Enable Notifications</button>
+  </form>
+  <div id="notificationMsg"></div>
+</div>
+
+<div class="proof-box">
+  <h2>Refresh FCM Token</h2>
+  <p class="small">Refresh your own FCM token if notifications aren't working</p>
+  <button id="refreshTokenBtn" class="btn">Refresh My FCM Token</button>
+  <div id="refreshMsg"></div>
+</div>
+</main>
+<footer id="footer"></footer>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/header.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>

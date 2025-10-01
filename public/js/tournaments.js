@@ -1,4 +1,5 @@
-function modeTeamSize(mode) {
+function modeTeamSize(mode, game) {
+  if (game === 'Clash Squad') return 4;
   if (mode === 'Duo') return 2;
   if (mode === 'Squad') return 4;
   return 1;
@@ -7,6 +8,54 @@ function modeTeamSize(mode) {
 const alertedMatches = new Set();
 const socket = io();
 let registering = false;
+
+// Listen for tournament.updated event to refresh room details if modal is open
+socket.on('tournament.updated', (data) => {
+  if (!data || !data.id) return;
+  // If modal is open and showing this tournament, update room details
+  const modal = document.getElementById('tournamentModal');
+  if (!modal || !modal.classList.contains('active')) return;
+  const currentId = modal.getAttribute('data-tournament-id');
+  if (String(currentId) !== String(data.id)) return;
+
+  // Update room details in modal
+  const roomIdEl = modal.querySelector('.room-id .detail-value span');
+  const roomPwEl = modal.querySelector('.room-pass .detail-value span');
+  if (roomIdEl && data.roomId) {
+    roomIdEl.textContent = data.roomId;
+    // Add copy button if not present
+    const copyBtn = roomIdEl.parentElement.querySelector('.copy-btn');
+    if (!copyBtn) {
+      roomIdEl.parentElement.innerHTML += `
+        <button class="copy-btn" data-copy="${data.roomId}" onclick="copyToClipboard(this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z"/>
+            <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"/>
+          </svg>
+        </button>
+      `;
+    } else {
+      copyBtn.setAttribute('data-copy', data.roomId);
+    }
+  }
+  if (roomPwEl && data.roomPassword) {
+    roomPwEl.textContent = data.roomPassword;
+    // Add copy button if not present
+    const copyBtn = roomPwEl.parentElement.querySelector('.copy-btn');
+    if (!copyBtn) {
+      roomPwEl.parentElement.innerHTML += `
+        <button class="copy-btn" data-copy="${data.roomPassword}" onclick="copyToClipboard(this)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z"/>
+            <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"/>
+          </svg>
+        </button>
+      `;
+    } else {
+      copyBtn.setAttribute('data-copy', data.roomPassword);
+    }
+  }
+});
 
 // Initialize alert container
 document.addEventListener('DOMContentLoaded', () => {
@@ -171,15 +220,53 @@ function cleanupCountdowns() {
 }
 
 let pageGame = null; // selected after click
+let statusFilter = 'upcoming';
+let typeFilter = 'all';
+
+function getTournamentStatus(tournament) {
+  const now = new Date();
+  const startTime = new Date(tournament.dateTime);
+  const diffMs = now - startTime;
+  const diffMinutes = diffMs / (1000 * 60);
+
+  if (diffMinutes < 0) {
+    return 'upcoming';
+  } else if (diffMinutes >= 0 && diffMinutes < 10) {
+    return 'ongoing';
+  } else {
+    return 'completed';
+  }
+}
+
 async function fetchTournaments() {
   try {
-    const list = await API.request('/api/tournaments?game=' + encodeURIComponent(pageGame));
+    let url = '/api/tournaments?game=' + encodeURIComponent(pageGame);
+    const mf = (window.pageModeFilter || 'all');
+    if (mf && mf !== 'all') url += '&mode=' + encodeURIComponent(mf);
+    const list = await API.request(url);
     console.log('Fetched tournaments:', list);
 
-    // Sort tournaments by startTime descending (newest to oldest)
-    const sortedList = list.sort((a, b) => new Date(b.dateTime) - new Date(a.dateTime));
+    // Sort tournaments by startTime ascending (earliest first)
+    const sortedList = list.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
 
-    renderTournaments(sortedList);
+    // Apply filters
+    const filteredList = sortedList.filter(t => {
+      const status = getTournamentStatus(t);
+      const type = t.mode.toLowerCase();
+
+      let statusMatch = false;
+      if (statusFilter === 'upcoming') {
+        statusMatch = status === 'upcoming' || status === 'ongoing';
+      } else if (statusFilter === 'completed') {
+        statusMatch = status === 'completed';
+      }
+
+      const typeMatch = typeFilter === 'all' || type === typeFilter;
+
+      return statusMatch && typeMatch;
+    });
+
+    renderTournaments(filteredList);
     // Check for matches starting soon with specific notification times
     const now = new Date();
     const notifyTimes = [30, 10, 5, 2]; // minutes
@@ -214,7 +301,7 @@ function renderTournaments(list) {
     }
     list.forEach(t => {
       console.log('Adding card for', t.title);
-      const teamSize = modeTeamSize(t.mode);
+      const teamSize = modeTeamSize(t.mode, t.game);
       const slotsText = `${t.slotsFilled}/${t.totalSlots}`;
       const banner = t.bannerPath ? t.bannerPath : '/img/placeholder-banner.jpg';
       const feeText = t.fee && t.fee > 0 ? `₹${t.fee}` : 'Free';
@@ -231,6 +318,11 @@ function renderTournaments(list) {
       card.className = 'tournament-card';
       card.setAttribute('data-tid', t.id);
       card.setAttribute('data-starttime', t.dateTime);
+
+      // Get status
+      const status = getTournamentStatus(t);
+      let statusText = status.charAt(0).toUpperCase() + status.slice(1);
+      let statusClass = `status-${status}`;
 
       // Check if tournament has any winner
       const hasWinner = t.winner1Name || t.winner2Name || t.winner3Name;
@@ -252,7 +344,7 @@ function renderTournaments(list) {
               <h3 class="tournament-title">${t.title}</h3>
               <div class="tournament-game">${t.game}</div>
             </div>
-            <span class="status-badge ${isFull ? 'full' : 'open'}">${isFull ? 'Full' : 'Open'}</span>
+            <span class="status-badge ${statusClass}">${statusText}</span>
           </div>
           
           <div class="countdown-timer" data-start-time="${t.dateTime}" id="countdown-${t.id}">
@@ -280,7 +372,7 @@ function renderTournaments(list) {
           <div class="tournament-info">
             <div class="info-item">
               <span class="info-label">Mode</span>
-              <span class="info-value">${t.mode}</span>
+              <span class="info-value">${t.mode}${t.game ? ` · ${t.game}` : ''}</span>
             </div>
             <div class="info-item">
               <span class="info-label">Entry Fee</span>
@@ -390,6 +482,7 @@ async function showTournamentDetails(id) {
     const content = document.getElementById('modalContent');
     const title = document.getElementById('modalTitle');
 
+    modal.setAttribute('data-tournament-id', id);
     title.textContent = tournament.title;
     
     content.innerHTML = `
@@ -435,9 +528,9 @@ async function showTournamentDetails(id) {
           <div class="detail-item room-pass">
             <div class="detail-label">Room Password</div>
             <div class="detail-value with-copy">
-              <span>${tournament.password || 'Available with Room ID'}</span>
-              ${tournament.password ? `
-                <button class="copy-btn" data-copy="${tournament.password}" onclick="copyToClipboard(this)">
+              <span>${tournament.roomPassword || 'Available with Room ID'}</span>
+              ${tournament.roomPassword ? `
+                <button class="copy-btn" data-copy="${tournament.roomPassword}" onclick="copyToClipboard(this)">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M8 4v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.242a2 2 0 0 0-.602-1.43L16.083 2.57A2 2 0 0 0 14.685 2H10a2 2 0 0 0-2 2z"/>
                     <path d="M16 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2"/>
@@ -539,7 +632,7 @@ async function handleRegister(id) {
     registering = false;
     return;
   }
-  const size = modeTeamSize(t.mode);
+  const size = modeTeamSize(t.mode, t.game);
   const participants = [];
 
   // Collect participant details using modal
@@ -719,6 +812,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cardPubg = document.getElementById('card-pubg');
   if (cardFf) { cardFf.addEventListener('click', ()=> chooseGame('Free Fire')); cardFf.addEventListener('keypress', (e)=>{ if (e.key==='Enter') chooseGame('Free Fire'); }); }
   if (cardPubg) { cardPubg.addEventListener('click', ()=> chooseGame('PUBG')); cardPubg.addEventListener('keypress', (e)=>{ if (e.key==='Enter') chooseGame('PUBG'); }); }
+  // Apply mode filters if present
+  const filtersWrap = document.querySelector('.tournament-filters');
+  if (filtersWrap) {
+    filtersWrap.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-mode]');
+      if (!btn) return;
+      document.querySelectorAll('.tournament-filters .filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const mode = btn.dataset.mode;
+      window.pageModeFilter = mode; // all | solo | duo | squad
+      fetchTournaments();
+    });
+  }
+
+  // Apply new filters
+  const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
+  filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filterType = btn.dataset.filter;
+      const value = btn.dataset.value;
+
+      if (filterType === 'status') {
+        statusFilter = value;
+        // Update active class for status buttons
+        document.querySelectorAll('.filter-btn[data-filter="status"]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      } else if (filterType === 'type') {
+        typeFilter = value;
+        // Update active class for type buttons
+        document.querySelectorAll('.filter-btn[data-filter="type"]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      }
+
+      fetchTournaments();
+    });
+  });
+  // Extra Games card for LONE WOLF and Clash Squad
+  const cardLone = document.getElementById('card-lonewolf');
+  if (cardLone) { cardLone.addEventListener('click', ()=> chooseGame('LONE WOLF')); cardLone.addEventListener('keypress', (e)=>{ if (e.key==='Enter') chooseGame('LONE WOLF'); }); }
+  const cardClash = document.getElementById('card-clash');
+  if (cardClash) { cardClash.addEventListener('click', ()=> chooseGame('Clash Squad')); cardClash.addEventListener('keypress', (e)=>{ if (e.key==='Enter') chooseGame('Clash Squad'); }); }
 
   // Do not fetch until a game is chosen
   // Poll every 15s for live updates (fallback if WebSocket fails)

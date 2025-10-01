@@ -77,6 +77,17 @@ module.exports = async function init(dbPath) {
           createdAt TEXT NOT NULL
         )`);
 
+        // Ensure transactions table (coins wallet logs)
+        db.run(`CREATE TABLE IF NOT EXISTS transactions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          amount INTEGER NOT NULL,
+          type TEXT NOT NULL, -- debit | credit
+          description TEXT,
+          dateTime TEXT NOT NULL,
+          FOREIGN KEY(userId) REFERENCES users(id) ON DELETE CASCADE
+        )`);
+
         // Ensure earnings table
         db.run(`CREATE TABLE IF NOT EXISTS earnings (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,6 +107,26 @@ module.exports = async function init(dbPath) {
           deletedAt TEXT,
           FOREIGN KEY(uploadedBy) REFERENCES users(id) ON DELETE CASCADE
         )`);
+
+        // Ensure videos table for homepage videos
+        db.run(`CREATE TABLE IF NOT EXISTS videos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          video_url TEXT NOT NULL,
+          thumbnail_url TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )`);
+
+        // Rename columns if they exist with old names
+        db.run(`ALTER TABLE videos RENAME COLUMN url TO video_url;`, (err) => {
+          if (err && !err.message.includes('no such column')) console.log('Rename url to video_url error:', err);
+        });
+        db.run(`ALTER TABLE videos RENAME COLUMN thumbnail TO thumbnail_url;`, (err) => {
+          if (err && !err.message.includes('no such column')) console.log('Rename thumbnail to thumbnail_url error:', err);
+        });
+        db.run(`ALTER TABLE videos RENAME COLUMN createdAt TO created_at;`, (err) => {
+          if (err && !err.message.includes('no such column')) console.log('Rename createdAt to created_at error:', err);
+        });
 
         // Auto-migrate columns (safe, idempotent)
         db.all("PRAGMA table_info(tournaments)", [], (e1, cols) => {
@@ -126,6 +157,15 @@ module.exports = async function init(dbPath) {
               // Ensure backfill on existing DBs
               db.run("UPDATE tournaments SET game = 'Free Fire' WHERE game IS NULL OR game = ''");
             }
+          }
+        });
+
+        // Add coins column to users if missing
+        db.all("PRAGMA table_info(users)", [], (e2, ucols) => {
+          if (!e2) {
+            const unames = (ucols || []).map(c => c.name);
+            if (!unames.includes('coins')) safeAddColumn('users', 'coins INTEGER DEFAULT 0');
+            if (!unames.includes('profilePic')) safeAddColumn('users', 'profilePic TEXT');
           }
         });
 

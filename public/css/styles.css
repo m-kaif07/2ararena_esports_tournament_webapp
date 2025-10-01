@@ -1094,6 +1094,59 @@ body {
   width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #26355f; background: #0f1533; color: var(--text);
 }
 label { display:flex; flex-direction: column; gap:6px; font-size: 14px; }
+
+/* Admin Dashboard Cards */
+.admin-dashboard {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.dashboard-card {
+  background: var(--card);
+  border: 1px solid #1a2342;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 30px var(--shadow);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-5px) scale(1.03);
+  box-shadow: 0 15px 40px rgba(0,229,255,0.15);
+  border-color: rgba(0,229,255,0.3);
+}
+
+.card-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.dashboard-card h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.dashboard-card p {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Responsive layout for mobile */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    grid-template-columns: 1fr;
+  }
+}
 .msg { margin-top: 12px; color: var(--muted); }
 .muted { color: var(--muted); font-size: 14px; }
 .small { font-size: 13px; color: var(--muted); }
@@ -1294,6 +1347,65 @@ footer { margin-top: 40px; padding: 20px 0; color: var(--muted); text-align:cent
   }
 }
 
+/* Tournament Filters */
+.tournament-filters-wrapper {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #0d1117, #1a1f2c);
+  border: 1px solid #2a2f3c;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.filter-row {
+  display: flex;
+  justify-content: center;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: #1a1f2c;
+  color: #bbb;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #2a2f3c;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.filter-btn:hover {
+  background: #2a2f3c;
+  color: #ddd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, #1E3EFF, #00FFFF);
+  color: white;
+  font-weight: 700;
+  border-color: #1E3EFF;
+  box-shadow: 0 0 20px rgba(30, 62, 255, 0.5), 0 0 40px rgba(0, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
 /* Modal Styles */
 .modal {
   position: fixed;
@@ -1360,4 +1472,331 @@ footer { margin-top: 40px; padding: 20px 0; color: var(--muted); text-align:cent
 
 .close-modal:hover {
   color: var(--text);
+}
+
+/* Profile Page Styles */
+.profile-bg {
+  background: linear-gradient(135deg, #0b0f1a 0%, #0a0d17 50%, #0c1324 100%);
+  min-height: 100vh;
+}
+
+.profile-info {
+  margin-bottom: 16px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar-small {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--accent);
+  border: 2px solid var(--accent);
+  flex-shrink: 0;
+}
+
+.user-details h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profile-email {
+  margin: 2px 0 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.profile-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
+
+.profile-card {
+  background: var(--card);
+  border: 1px solid #1a2342;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px var(--shadow);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.profile-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(0,229,255,0.15);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.card-icon {
+  font-size: 24px;
+}
+
+.card-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.card-content {
+  color: var(--text);
+}
+
+/* Toggle Switch */
+.toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.toggle {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: var(--accent);
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Earnings Display */
+.earnings-display {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--success);
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(25, 195, 125, 0.1), rgba(25, 195, 125, 0.05));
+  border-radius: 12px;
+  border: 1px solid rgba(25, 195, 125, 0.3);
+}
+
+/* Tournaments List */
+.tournaments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tournament-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: #0f1533;
+  border-radius: 12px;
+  border: 1px solid #1a2342;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.tournament-item:hover {
+  background: #18223e;
+  border-color: var(--accent);
+}
+
+.tournament-thumbnail {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.tournament-info {
+  flex: 1;
+}
+
+.tournament-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.tournament-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.tournament-status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-upcoming {
+  background: rgba(147, 197, 253, 0.2);
+  color: #93c5fd;
+}
+
+.status-ongoing {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.status-completed {
+  background: rgba(25, 195, 125, 0.2);
+  color: #19c37d;
+}
+
+.tournament-date {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.profile-actions {
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* Modernized Footer Navigation */
+.bottom-nav-links {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0 16px;
+  flex-direction: row;
+  width: 100%;
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: var(--muted);
+  gap: 4px;
+}
+
+.nav-link:hover {
+  color: var(--accent);
+  background: rgba(0, 229, 255, 0.1);
+}
+
+.nav-link.active {
+  color: var(--accent);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(138, 43, 226, 0.2));
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+}
+
+.nav-icon {
+  font-size: 20px;
+}
+
+.nav-text {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .user-details h2 {
+    font-size: 1.2rem;
+  }
+
+  .avatar-small {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .profile-card {
+    padding: 20px;
+  }
+
+  .tournaments-list {
+    gap: 12px;
+  }
+
+  .tournament-item {
+    padding: 12px;
+  }
+
+  .tournament-filters-wrapper {
+    padding: 16px;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .filter-buttons {
+    gap: 10px;
+  }
+
+  .filter-btn {
+    padding: 8px 16px;
+    font-size: 13px;
+    min-height: 40px;
+  }
 }

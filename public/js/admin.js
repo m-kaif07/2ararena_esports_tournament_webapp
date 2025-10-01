@@ -61,9 +61,9 @@ async function createTournament(e) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed');
-    document.getElementById('createMsg').textContent = 'Tournament created!';
+    document.getElementById('createMsg').textContent = 'Tournament created! Redirecting to manage page...';
     form.reset();
-    loadAdminTournaments();
+    setTimeout(() => window.location.href = '/manage-tournament.html', 1000);
   } catch (err) {
     document.getElementById('createMsg').textContent = err.message;
   }
@@ -329,6 +329,24 @@ async function refreshFCMToken() {
 document.addEventListener('DOMContentLoaded', async () => {
   await ensureAdmin();
 
+  // Dashboard card navigation
+  document.querySelectorAll('.dashboard-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const section = card.getAttribute('data-section');
+      // Redirect URLs for each section
+      const redirectMap = {
+        'upload-proof': '/upload-proof.html',
+        'create-tournament': '/create-tournament.html',
+        'manage-tournament': '/manage-tournament.html',
+        'user-notifications': '/notifications.html'
+      };
+      const url = redirectMap[section];
+      if (url) {
+        window.location.href = url;
+      }
+    });
+  });
+
   // Add upload form handler
   const uploadForm = document.getElementById('proofUploadForm');
   if (uploadForm) {
@@ -389,13 +407,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (gameSelMsg) gameSelMsg.textContent = 'Selected: ' + g;
     updateSlotsHint();
   }
-  document.getElementById('tab-ff').addEventListener('click', (e)=>{ e.preventDefault(); setGame('Free Fire'); e.target.classList.remove('secondary'); document.getElementById('tab-pubg').classList.add('secondary'); });
-  document.getElementById('tab-pubg').addEventListener('click', (e)=>{ e.preventDefault(); setGame('PUBG'); e.target.classList.remove('secondary'); document.getElementById('tab-ff').classList.add('secondary'); });
+  const tabFf = document.getElementById('tab-ff');
+  if (tabFf) tabFf.addEventListener('click', (e)=>{ e.preventDefault(); setGame('Free Fire'); e.target.classList.remove('secondary'); const pubg = document.getElementById('tab-pubg'); if (pubg) pubg.classList.add('secondary'); const lone = document.getElementById('tab-lone'); if (lone) lone.classList.add('secondary'); const clash = document.getElementById('tab-clash'); if (clash) clash.classList.add('secondary'); });
+  const tabPubg = document.getElementById('tab-pubg');
+  if (tabPubg) tabPubg.addEventListener('click', (e)=>{ e.preventDefault(); setGame('PUBG'); e.target.classList.remove('secondary'); const ff = document.getElementById('tab-ff'); if (ff) ff.classList.add('secondary'); const lone = document.getElementById('tab-lone'); if (lone) lone.classList.add('secondary'); const clash = document.getElementById('tab-clash'); if (clash) clash.classList.add('secondary'); });
+  const tabLone = document.getElementById('tab-lone');
+  if (tabLone) tabLone.addEventListener('click', (e)=>{ e.preventDefault(); setGame('LONE WOLF'); e.target.classList.remove('secondary'); const ff = document.getElementById('tab-ff'); if (ff) ff.classList.add('secondary'); const pubg = document.getElementById('tab-pubg'); if (pubg) pubg.classList.add('secondary'); const clash = document.getElementById('tab-clash'); if (clash) clash.classList.add('secondary'); });
+  const tabClash = document.getElementById('tab-clash');
+  if (tabClash) tabClash.addEventListener('click', (e)=>{ e.preventDefault(); setGame('Clash Squad'); e.target.classList.remove('secondary'); const ff = document.getElementById('tab-ff'); if (ff) ff.classList.add('secondary'); const pubg = document.getElementById('tab-pubg'); if (pubg) pubg.classList.add('secondary'); const lone = document.getElementById('tab-lone'); if (lone) lone.classList.add('secondary'); });
 
   // Mode change -> update slots hint
   const modeField = document.getElementById('modeField');
   const slotsHint = document.getElementById('slotsHint');
   function defaultSlotsFor(game, mode){
+    if (game === 'LONE WOLF') return 2; // Solo or Duo → 2 slots
+    if (game === 'Clash Squad') return 2; // Always 2 team slots
     if (game === 'PUBG') { if (mode === 'Duo') return 50; if (mode === 'Squad') return 25; return 100; }
     else { if (mode === 'Duo') return 24; if (mode === 'Squad') return 12; return 48; }
   }
@@ -471,6 +497,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Manage list tabs
   const listGameSelMsg = document.getElementById('listGameSelMsg');
   function setListGame(g){ listGame = g; if (listGameSelMsg) listGameSelMsg.textContent = 'Showing: ' + g; loadAdminTournaments(); }
-  document.getElementById('tab-list-ff').addEventListener('click', (e)=>{ e.preventDefault(); setListGame('Free Fire'); e.target.classList.remove('secondary'); document.getElementById('tab-list-pubg').classList.add('secondary'); });
-  document.getElementById('tab-list-pubg').addEventListener('click', (e)=>{ e.preventDefault(); setListGame('PUBG'); e.target.classList.remove('secondary'); document.getElementById('tab-list-ff').classList.add('secondary'); });
+  const tabListFf = document.getElementById('tab-list-ff');
+  if (tabListFf) tabListFf.addEventListener('click', (e)=>{ e.preventDefault(); setListGame('Free Fire'); e.target.classList.remove('secondary'); const pubg = document.getElementById('tab-list-pubg'); if (pubg) pubg.classList.add('secondary'); const lone = document.getElementById('tab-list-lone'); if (lone) lone.classList.add('secondary'); const clash = document.getElementById('tab-list-clash'); if (clash) clash.classList.add('secondary'); });
+  const tabListPubg = document.getElementById('tab-list-pubg');
+  if (tabListPubg) tabListPubg.addEventListener('click', (e)=>{ e.preventDefault(); setListGame('PUBG'); e.target.classList.remove('secondary'); const ff = document.getElementById('tab-list-ff'); if (ff) ff.classList.add('secondary'); const lone = document.getElementById('tab-list-lone'); if (lone) lone.classList.add('secondary'); const clash = document.getElementById('tab-list-clash'); if (clash) clash.classList.add('secondary'); });
+  const tabListLone = document.getElementById('tab-list-lone');
+  if (tabListLone) tabListLone.addEventListener('click', (e)=>{ e.preventDefault(); setListGame('LONE WOLF'); e.target.classList.remove('secondary'); const ff = document.getElementById('tab-list-ff'); if (ff) ff.classList.add('secondary'); const pubg = document.getElementById('tab-list-pubg'); if (pubg) pubg.classList.add('secondary'); const clash = document.getElementById('tab-list-clash'); if (clash) clash.classList.add('secondary'); });
+  const tabListClash = document.getElementById('tab-list-clash');
+  if (tabListClash) tabListClash.addEventListener('click', (e)=>{ e.preventDefault(); setListGame('Clash Squad'); e.target.classList.remove('secondary'); const ff = document.getElementById('tab-list-ff'); if (ff) ff.classList.add('secondary'); const pubg = document.getElementById('tab-list-pubg'); if (pubg) pubg.classList.add('secondary'); const lone = document.getElementById('tab-list-lone'); if (lone) lone.classList.add('secondary'); });
 });

@@ -21,6 +21,15 @@ function defaultSlotsFor(game, mode) {
   // PUBG: Solo 100, Duo 50, Squad 25
   // Free Fire: Solo 48, Duo 24, Squad 12
   const g = String(game || 'Free Fire');
+  // Special rules
+  if (g === 'LONE WOLF') {
+    // Solo or Duo → 2 team slots total
+    return 2;
+  }
+  if (g === 'Clash Squad') {
+    // Always 2 team slots; each team has 4 players (handled by UI/mode)
+    return 2;
+  }
   if (g === 'PUBG') {
     if (mode === 'Duo') return 50;
     if (mode === 'Squad') return 25;
@@ -99,7 +108,11 @@ module.exports = function(db) {
             if (existing) return done();
             db.run('INSERT INTO earnings (userId, amount, description, dateTime) VALUES (?,?,?,?)', [userId, prize, earningDesc, nowIso], (e4) => {
               if (e4) return res.status(500).json({ error: 'Failed to record earning' });
-              done();
+              // Also record wallet credit transaction if coins wallet is used
+              db.run('INSERT INTO transactions (userId, amount, type, description, dateTime) VALUES (?,?,?,?,?)', [userId, prize, 'credit', `Prize credited: ${tournament.title}`, nowIso], (te) => {
+                // Ignore tx error silently to avoid blocking prize; earnings already recorded
+                done();
+              });
             });
           });
         });
@@ -221,6 +234,18 @@ module.exports = function(db) {
         const io = req.app.get('io');
         if (io) {
           io.to(`tournament:${id}`).emit('notification', { type: 'room_updated', message: 'Room ID and Password have been updated for this tournament.' });
+          // Also emit tournament.updated with updated room details for UI refresh
+          db.get('SELECT * FROM tournaments WHERE id = ?', [id], (err, updatedTournament) => {
+            if (!err && updatedTournament) {
+              io.to(`tournament:${id}`).emit('tournament.updated', {
+                id: updatedTournament.id,
+                roomId: updatedTournament.roomId,
+                roomPassword: updatedTournament.roomPassword,
+                dateTime: updatedTournament.dateTime,
+                title: updatedTournament.title
+              });
+            }
+          });
         }
       }
       // If mode changed and thus totalSlots changed, re-seed slots only if needed
@@ -265,6 +290,64 @@ module.exports = function(db) {
           fs.unlink(filePath, ()=>{});
         }
         res.json({ ok: true, deleted: this.changes });
+      });
+    });
+  });
+
+  // Cancel tournament: refund coins to paid registrations, free slots, notify, and delete tournament
+  router.post('/tournaments/:id/cancel', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return res.status(400).json({ error: 'Invalid id' });
+    db.get('SELECT * FROM tournaments WHERE id = ?', [id], (e0, t) => {
+      if (e0) return res.status(500).json({ error: 'Server error' });
+      if (!t) return res.status(404).json({ error: 'Tournament not found' });
+      const feeVal = Number(t.fee || 0);
+      const nowIso = new Date().toISOString();
+      db.all('SELECT id, userId, paid FROM registrations WHERE tournamentId = ?', [id], (e1, regs) => {
+        if (e1) return res.status(500).json({ error: 'Server error' });
+        db.run('BEGIN TRANSACTION');
+        const refundNext = (i) => {
+          if (!regs || i >= regs.length) {
+            // After refunds, delete tournament (will cascade slots and registrations)
+            db.run('DELETE FROM tournaments WHERE id = ?', [id], (delErr) => {
+              if (delErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Failed to cancel' }); }
+              db.run('COMMIT', (cmErr) => {
+                if (cmErr) return res.status(500).json({ error: 'Server error' });
+                // Notify users via socket and FCM
+                const io = req.app.get('io');
+                const fcm = req.app.get('fcm');
+                if (io) io.emit('notification', { type: 'tournament_cancelled', message: `Tournament "${t.title}" has been cancelled. Refunds processed.` });
+                if (fcm) {
+                  db.all('SELECT u.fcmToken FROM users u JOIN registrations r ON r.userId = u.id WHERE r.tournamentId = ?', [id], (nfErr, rows) => {
+                    if (!nfErr && rows) {
+                      rows.forEach(rw => {
+                        if (rw.fcmToken) {
+                          const message = { token: rw.fcmToken, notification: { title: 'Tournament Cancelled', body: `"${t.title}" cancelled. Refunds processed.` } };
+                          fcm.send(message).catch(()=>{});
+                        }
+                      });
+                    }
+                  });
+                }
+                return res.json({ ok: true, cancelled: true });
+              });
+            });
+            return;
+          }
+          const r = regs[i];
+          if (!r.paid || feeVal <= 0) {
+            return refundNext(i + 1);
+          }
+          // Refund coins and log transaction
+          db.run('UPDATE users SET coins = coins + ? WHERE id = ?', [feeVal, r.userId], (uErr) => {
+            if (uErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Server error' }); }
+            db.run('INSERT INTO transactions (userId, amount, type, description, dateTime) VALUES (?,?,?,?,?)', [r.userId, feeVal, 'credit', `Refund for cancelled tournament: ${t.title}`, nowIso], (trErr) => {
+              if (trErr) { db.run('ROLLBACK'); return res.status(500).json({ error: 'Server error' }); }
+              refundNext(i + 1);
+            });
+          });
+        };
+        refundNext(0);
       });
     });
   });
@@ -382,11 +465,11 @@ module.exports = function(db) {
     const { status, participants } = req.body || {};
     if (!tournamentId || !slotNumber) return res.status(400).json({ error: 'Invalid params' });
 
-    db.get('SELECT mode FROM tournaments WHERE id = ?', [tournamentId], (e1, t) => {
+    db.get('SELECT mode, game FROM tournaments WHERE id = ?', [tournamentId], (e1, t) => {
       if (e1) return res.status(500).json({ error: 'Server error' });
       if (!t) return res.status(404).json({ error: 'Tournament not found' });
 
-      const teamSize = (t.mode === 'Duo') ? 2 : (t.mode === 'Squad') ? 4 : 1;
+      const teamSize = (t.game === 'Clash Squad') ? 4 : (t.mode === 'Duo') ? 2 : (t.mode === 'Squad') ? 4 : 1;
       const allowedStatus = ['empty','reserved','confirmed'];
       const statusValue = allowedStatus.includes(status) ? status : 'empty';
 
